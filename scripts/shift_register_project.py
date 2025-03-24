@@ -12,7 +12,7 @@ parser = optparse.OptionParser()
 parser.add_option('-f', '--frequency', dest="frequency", default=1000000,
                   help="set target frequency in hz (default: 1Mhz)", 
                   type=float)
-parser.add_option('-d', '--display-ratio', dest="display_ratio", default=50000,
+parser.add_option('-d', '--display-ratio', dest="display_ratio", default=500,
                   help="How long to hold before shifting in new input (default: 50000)", 
                   type=float)
 
@@ -99,12 +99,11 @@ def ser_input(bitmap_list):
             led_off(OE_GPIO) #active low
             time.sleep(period * options.display_ratio)
 
+            
 def chaser():
     last_color = 1
     color = 2
     while 1:
-        led_on(OE_GPIO) #output disabled
-        led_off(RCLK_GPIO)
         bitmap_list = []
         bitmap = 0
         while color == last_color or color == 0:
@@ -118,18 +117,19 @@ def chaser():
         for i in range(8):
             bitmap_list += [bitmap<<i]       
         for bitmap in bitmap_list:
-            for i in range(24):
-                if (bitmap & (1 << i)):
+            clear()
+            led_on(OE_GPIO) #output disabled
+            for j in range(24):
+                if (bitmap & (1 << j)):
                     led_on(SER_GPIO)
                 else:
                     led_off(SER_GPIO)
-                led_on(RCLK_GPIO)
+                led_off(RCLK_GPIO)
                 led_on(SRCLK_GPIO)
                 time.sleep(period)
-                led_off(RCLK_GPIO)
+                led_on(RCLK_GPIO)
                 led_off(SRCLK_GPIO)
                 time.sleep(period)
-            #led_on(RCLK_GPIO)
             led_off(OE_GPIO) #output enabled
             for i in range(int(options.display_ratio)):
                 led_on(SRCLK_GPIO)
@@ -138,26 +138,43 @@ def chaser():
                 time.sleep(period)
         last_color = color
 
+def clear():
+    led_off(OE_GPIO) #output enabled
+    led_off(SRCLR_GPIO)
+    led_off(SRCLK_GPIO)
+    led_off(SER_GPIO)
+    led_off(RCLK_GPIO)
+    time.sleep(period)
+
+    led_on(SRCLK_GPIO)
+    time.sleep(period)
+
+    led_off(SRCLK_GPIO)
+    led_on(SRCLR_GPIO)
+    time.sleep(period)
+
+    led_on(SRCLK_GPIO)
+    time.sleep(period)
+
 def simple_chaser():
     bitmap_list = []
-    for i in range(8):
-        bitmap_list += [1<<i]       
+    for i in range(25):
+        bitmap_list += [1<<i]
     while 1:
-        led_on(OE_GPIO) #output disabled
-        led_off(RCLK_GPIO)
         for bitmap in bitmap_list:
-            for i in range(24):
-                if (bitmap & (1 << i)):
+            clear()
+            led_on(OE_GPIO) #output disabled
+            for j in range(25):
+                if (bitmap & (1 << j)):
                     led_on(SER_GPIO)
                 else:
                     led_off(SER_GPIO)
-                led_on(RCLK_GPIO)
+                led_off(RCLK_GPIO)
                 led_on(SRCLK_GPIO)
                 time.sleep(period)
-                led_off(RCLK_GPIO)
+                led_on(RCLK_GPIO)
                 led_off(SRCLK_GPIO)
                 time.sleep(period)
-            #led_on(RCLK_GPIO)
             led_off(OE_GPIO) #output enabled
             for i in range(int(options.display_ratio)):
                 led_on(SRCLK_GPIO)
@@ -165,7 +182,54 @@ def simple_chaser():
                 led_off(SRCLK_GPIO)
                 time.sleep(period)
  
-            
+def chase_back():
+    last_color = 1
+    color = 2
+    every_other = 0
+    while 1:
+        bitmap_list = []
+        bitmap = 0
+        while color == last_color or color == 0:
+            color = random.randint(0,7)
+        if (color & 0x1):
+            bitmap |= 0x10000
+        if (color & 0x2):
+            bitmap |= 0x100
+        if (color & 0x4):
+            bitmap |= 0x1
+        for i in range(8):
+            bitmap_list += [bitmap<<i]
+        for bitmap in bitmap_list:
+            clear()
+            led_on(OE_GPIO) #output disabled
+            for j in range(24):
+                if every_other == 0:
+                    k = j
+                else:
+                    k = 23 - j
+                if (bitmap & (1 << k)):
+                    led_on(SER_GPIO)
+                else:
+                    led_off(SER_GPIO)
+                led_off(RCLK_GPIO)
+                led_on(SRCLK_GPIO)
+                time.sleep(period)
+                led_on(RCLK_GPIO)
+                led_off(SRCLK_GPIO)
+                time.sleep(period)
+            led_off(OE_GPIO) #output enabled
+            for i in range(int(options.display_ratio)):
+                led_on(SRCLK_GPIO)
+                time.sleep(period)
+                led_off(SRCLK_GPIO)
+                time.sleep(period)
+        if every_other == 0:
+            every_other = 1
+        else:
+            every_other = 0
+        last_color = color
+
+                
 def run():
     
     # start the clock
@@ -173,20 +237,21 @@ def run():
     #t.start()
 
     # Deassert and assert clear (active low)
-    led_off(SRCLR_GPIO)
-    time.sleep(0.1)
-    led_on(SRCLR_GPIO)
-
+    #led_off(SRCLR_GPIO)
+    #time.sleep(0.1)
+    #led_on(SRCLR_GPIO)
+ 
     #random_colors()
 
     # red, blue
     #bitmap_list = [0xff0000, 0x00ff00]
     #ser_input(bitmap_list)
 
+    #simple_chaser()
     #chaser()
+    chase_back()
 
-    simple_chaser()
-
+ 
     
 #main
 gpio_setup()
