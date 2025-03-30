@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <pigpio.h>
 
 //globals
-const int display_usec = 50000;
+const int display_usec = 75000;
 const float period = 1;
 
 #define SRCLK_GPIO 17
@@ -71,13 +73,31 @@ void clear(void) {
   led_off(SRCLK_GPIO);
   led_on(SRCLR_GPIO);
   gpioDelay(period);
+}
 
-  led_on(SRCLK_GPIO);
-  gpioDelay(period);
+void display_bitmap(unsigned int bitmap) {
+  //printf("bitmap: 0x%x\n", bitmap);
+  led_on(OE_GPIO); //output disabled	
+  for (int j=0; j<25; ++j) {
+    if (bitmap & (1 << j)) {
+      led_on(SER_GPIO);
+    } else {
+      led_off(SER_GPIO);
+    }
+    
+    led_on(RCLK_GPIO);
+    led_off(SRCLK_GPIO);
+    gpioDelay(period);
+    led_off(RCLK_GPIO);
+    led_on(SRCLK_GPIO);
+    gpioDelay(period);
+  }
+  led_off(OE_GPIO); //output enabled
+  gpioDelay(display_usec);
 }
 
 void simple_chaser(void) {
-  unsigned int bitmap_list[25];
+  unsigned int bitmap_list[24];
   unsigned int bitmap;
   for (int i=0; i<24; ++i) {
     bitmap_list[i] = 1<<i;
@@ -86,70 +106,48 @@ void simple_chaser(void) {
     for (int i=0; i<24; ++i) {
       clear();
       bitmap = bitmap_list[i];
-      //printf("bitmap: 0x%x\n", bitmap);
-      led_on(OE_GPIO); //output disabled	
-      for (int j=0; j<25; ++j) {
-	if (bitmap & (1 << j)) {
-	  led_on(SER_GPIO);
-	} else {
-	  led_off(SER_GPIO);
-	}
-	led_off(RCLK_GPIO);
-	led_off(SRCLK_GPIO);
-	gpioDelay(period);
-	led_on(RCLK_GPIO);
-	led_on(SRCLK_GPIO);
-	gpioDelay(period);
-      }
-      led_off(OE_GPIO); //output enabled
-      gpioDelay(display_usec);
+      display_bitmap(bitmap);
     }
   }
 }
 
-/* def chase_back(): */
-/*     last_color = 1 */
-/*     color = 2 */
-/*     every_other = 0 */
-/*     while 1: */
-/*         bitmap_list = [] */
-/*         bitmap = 0 */
-/*         while color == last_color or color == 0: */
-/*             color = random.randint(0,7) */
-/*         if (color & 0x1): */
-/*             bitmap |= 0x10000 */
-/*         if (color & 0x2): */
-/*             bitmap |= 0x100 */
-/*         if (color & 0x4): */
-/*             bitmap |= 0x1 */
-/*         for i in range(8): */
-/*             bitmap_list += [bitmap<<i] */
-/*         for bitmap in bitmap_list: */
-/*             clear() */
-/*             led_on(OE_GPIO) #output disabled */
-/*             for j in range(24): */
-/*                 if every_other == 0: */
-/*                     k = j */
-/*                 else: */
-/*                     k = 23 - j */
-/*                 if (bitmap & (1 << k)): */
-/*                     led_on(SER_GPIO) */
-/*                 else: */
-/*                     led_off(SER_GPIO) */
-/*                 led_off(RCLK_GPIO) */
-/*                 led_on(SRCLK_GPIO) */
-/*                 gpioDelay(period) */
-/*                 led_on(RCLK_GPIO) */
-/*                 led_off(SRCLK_GPIO) */
-/*                 gpioDelay(period) */
-/*             led_off(OE_GPIO) #output enabled */
-/*             gpioDelay(display_usec) */
-/*         if every_other == 0: */
-/*             every_other = 1 */
-/*         else: */
-/*             every_other = 0 */
-/*         last_color = color */
-
+void chase_back() {
+  int last_color = 1;
+  int color = 2;
+  int every_other = 0;
+  unsigned int bitmap_list[24];
+  unsigned int bitmap;
+  int k;
+  while (1) {
+    bitmap = 0;
+    while (color == last_color || color == 0) {
+      color = rand()%8;
+    }
+    if (color & 0x1)
+      bitmap |= 0x10000;
+    if (color & 0x2)
+      bitmap |= 0x100;
+    if (color & 0x4)
+      bitmap |= 0x1;
+    for (int i=0; i<8; ++i) {
+      if (every_other)
+	k = 7-i;
+      else
+	k = i;
+      bitmap_list[k] = bitmap<<i;
+    }
+    for (int i=0; i<8; ++i) {
+      bitmap = bitmap_list[i];
+      display_bitmap(bitmap);
+      clear();
+    }
+    if (every_other == 0)
+      every_other = 1;
+    else
+      every_other = 0;
+    last_color = color;
+  }
+}
 
 void test_fn(void) {
   gpioInitialise();
