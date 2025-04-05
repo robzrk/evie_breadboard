@@ -93,7 +93,13 @@ void display_bitmap(unsigned int bitmap) {
     gpioDelay(period);
   }
   led_off(OE_GPIO); //output enabled
-  gpioDelay(display_usec);
+  // 5% brightness
+  for (int j=0; j<display_usec/100; ++j) {
+    led_on(OE_GPIO); //output disabled	
+    gpioDelay(95);
+    led_off(OE_GPIO); //output enabled	
+    gpioDelay(5);
+  }
 }
 
 void simple_chaser(void) {
