@@ -131,8 +131,106 @@ void clear(void) {
   gpioDelay(period);
 }
 
+unsigned int char_to_byte(char char_in) {
+  switch (char_in) {
+  case 'a':
+  case 'A':
+  default:
+    return SEG_A;
+  case 'b':
+  case 'B':
+    return SEG_B;
+  case 'c':
+  case 'C':
+    return SEG_C;
+  case 'd':
+  case 'D':
+    return SEG_D;
+  case 'e':
+  case 'E':
+    return SEG_E;
+    // HERE!
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case 'a':
+  case 'A':
+    return SEG_A;
+  case ' ':
+    return SEG_BLANK;
+  }
+} 
+
+void brightness_delay(unsigned int delay_ms) {
+  int brightness_pct = 5;
+  for (int j=0; j<delay_ms; ++j) {
+    // 5% brightness
+    led_on(OE_GPIO); //output disabled	
+    gpioDelay(1000 - brightness_pct*10);
+    led_off(OE_GPIO); //output enabled	
+    gpioDelay(brightness_pct*10);
+  }
+}
+
 void display_bitmap(unsigned int bitmap) {
-  //printf("bitmap: 0x%06x\n", bitmap);
+  printf("bitmap: 0x%06x\n", bitmap);
   led_on(OE_GPIO); //output disabled	
   for (int j=0; j<33; ++j) {
     if (bitmap & (1 << j)) {
@@ -149,14 +247,39 @@ void display_bitmap(unsigned int bitmap) {
     gpioDelay(period);
   }
   led_off(OE_GPIO); //output enabled
-  // 5% brightness
-  for (int j=0; j<display_usec/100; ++j) {
-    led_on(OE_GPIO); //output disabled	
-    gpioDelay(95);
-    led_off(OE_GPIO); //output enabled	
-    gpioDelay(5);
-  }
+  brightness_delay(display_usec/100);
 }
+
+void display_message(char *message) {
+  char c0, c1, c2, c3;
+  int msg_pos = -4;
+  unsigned int bitmap;
+  while (1) {
+    if (msg_pos+3 < 0)
+      c0 = ' ';
+    else
+      c0 = message[msg_pos+3];
+    if (msg_pos+2 < 0)
+      c1 = ' ';
+    else
+      c1 = message[msg_pos+2];
+    if (msg_pos+1 < 0)
+      c2 = ' ';
+    else
+      c2 = message[msg_pos+1];
+    if (msg_pos < 0)
+      c3 = ' ';
+    else
+      c3 = message[msg_pos];
+    bitmap = char_to_byte(c0) << 24 |
+      char_to_byte(c1) << 16 |
+      char_to_byte(c2) << 8 |
+      char_to_byte(c3);
+    display_bitmap(bitmap);
+    brightness_delay(1000);
+  } 
+}
+
 
 void simple_chaser(void) {
   unsigned int bitmap_list[32];
@@ -188,6 +311,14 @@ void gj_h(void) {
     display_bitmap(bitmap);
   }
 }
+
+void all_on(void) {  
+  clear();
+  while (1) {
+    display_bitmap(0xffffffff);
+  }
+}
+
 
 void chase_back() {
   int last_fg_color = 1;
@@ -308,8 +439,11 @@ int main(void) {
   printf("Dispay Usec: %d, Period: %f\n", display_usec, period);
   gpio_setup();
 
+  char* message = "Good Job Heather";
+  display_message(message);
   //evie();
-  gj_h();
+  //gj_h();
+  //all_on();
   //simple_chaser();
   //chase_back();
   //test_fn();
