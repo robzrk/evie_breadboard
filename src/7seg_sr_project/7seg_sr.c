@@ -5,7 +5,7 @@
 #include <pigpio.h>
 
 //globals
-const int display_usec = 20000;
+const int display_usec = 100000;
 const float period = 1;
 
 #define SRCLK_GPIO 17
@@ -13,6 +13,62 @@ const float period = 1;
 #define OE_GPIO 22
 #define RCLK_GPIO 23
 #define SRCLR_GPIO 24
+
+// A: 1110 1110: 0xee
+// B: 1111 1110: 0xfe
+// C: 1001 1100: 0x9c
+// D: 0111 1010: 0x7a
+// E: 1001 1110: 0x9e
+// F: 1000 1110: 0x8e
+// G: 1011 1110: 0xbe
+// H: 0110 1110: 0x6e
+// I: 0000 1100: 0x0c
+// J: 0111 1000: 0x78
+// K: 0110 1111: 0x6f
+// L: 0001 1100: 0x1c
+// M: 0010 1011: 0x2b
+// N: 0010 1010: 0x2c
+// O: 0111 1010: 0x7a
+// P: 1100 1110: 0xce
+// Q: 1111 1101: 0xfd
+// R: 1110 1111: 0xef
+// S: 1011 1010: 0xda
+// T: 0001 1110: 0x1e
+// U: 0011 1000: 0x38
+// V: 0111 1100: 0x7c
+// W: 0011 1001: 0x39
+// X: 0110 1111: 0x6f
+// Y: 0111 0110: 0x76
+// Z: 1011 1011: 0xdd
+
+#define SEG_A 0xee
+#define SEG_B 0xfe
+#define SEG_C 0x9c
+#define SEG_D 0x7a
+#define SEG_E 0x9e
+#define SEG_F 0x8e
+#define SEG_G 0xbe
+#define SEG_H 0x6e
+#define SEG_I 0x0c
+#define SEG_J 0x78
+#define SEG_K 0x6f
+#define SEG_L 0x1c
+#define SEG_M 0x2b
+#define SEG_N 0x2c
+#define SEG_O 0x7a
+#define SEG_P 0xce
+#define SEG_Q 0xfd
+#define SEG_R 0xef
+#define SEG_S 0xda
+#define SEG_T 0x1e
+#define SEG_U 0x38
+#define SEG_V 0x7c
+#define SEG_W 0x39
+#define SEG_X 0x6f
+#define SEG_Y 0x76
+#define SEG_Z 0xdd
+#define SEG_BLANK 0x00
+
 
 //pi = pigpio.pi()
 
@@ -78,7 +134,7 @@ void clear(void) {
 void display_bitmap(unsigned int bitmap) {
   //printf("bitmap: 0x%06x\n", bitmap);
   led_on(OE_GPIO); //output disabled	
-  for (int j=0; j<25; ++j) {
+  for (int j=0; j<33; ++j) {
     if (bitmap & (1 << j)) {
       led_on(SER_GPIO);
     } else {
@@ -103,17 +159,33 @@ void display_bitmap(unsigned int bitmap) {
 }
 
 void simple_chaser(void) {
-  unsigned int bitmap_list[24];
+  unsigned int bitmap_list[32];
   unsigned int bitmap;
-  for (int i=0; i<24; ++i) {
+  for (int i=0; i<32; ++i) {
     bitmap_list[i] = 1<<i;
   }
   while (1) {
-    for (int i=0; i<24; ++i) {
+    for (int i=0; i<32; ++i) {
       clear();
       bitmap = bitmap_list[i];
       display_bitmap(bitmap);
     }
+  }
+}
+
+void evie(void) {  
+  unsigned int bitmap = SEG_E << 24 | SEG_V << 16 | SEG_I << 8 | SEG_E;
+  clear();
+  while (1) {
+    display_bitmap(bitmap);
+  }
+}
+
+void gj_h(void) {  
+  unsigned int bitmap = SEG_G << 24 | SEG_J << 16 | SEG_BLANK << 8 | SEG_H;
+  clear();
+  while (1) {
+    display_bitmap(bitmap);
   }
 }
 
@@ -235,8 +307,11 @@ void test_fn(void) {
 int main(void) {
   printf("Dispay Usec: %d, Period: %f\n", display_usec, period);
   gpio_setup();
+
+  //evie();
+  gj_h();
   //simple_chaser();
-  chase_back();
+  //chase_back();
   //test_fn();
   gpioTerminate();
   return 0;
